@@ -10,28 +10,26 @@ Buffer.from('中文測試'); // 強制 Node.js 使用 UTF-8
 dotenv.config();
 const app = express();
 
-// 設置 CORS 中間件
-app.use((req, res, next) => {
-    // 設置允許的來源
-    const allowedOrigins = ['https://filesys-frontend.onrender.com'];
-    const origin = req.headers.origin;
-    
-    if (allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-    
-    // 設置其他 CORS 頭
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
-    // 處理 OPTIONS 請求
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
-    next();
-});
+// CORS 配置
+const corsOptions = {
+    origin: function (origin, callback) {
+        const allowedOrigins = ['https://filesys-frontend.onrender.com', 'http://localhost:3000'];
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('不允許的來源'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    credentials: true,
+    maxAge: 86400, // 預檢請求的結果可以快取 24 小時
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+};
+
+// 使用 CORS 中間件
+app.use(cors(corsOptions));
 
 // 中間件
 app.use(express.json());
