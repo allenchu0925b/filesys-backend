@@ -77,4 +77,28 @@ router.post('/login', async (req, res) => {
     }
 });
 
+router.post('/init-admin', async (req, res) => {
+    console.log('收到 /init-admin 請求');
+    try {
+        const adminExists = await User.findOne({ username: 'testadmin' });
+        console.log('檢查管理員是否存在:', adminExists);
+        if (adminExists) {
+            console.log('管理員已存在，返回 400');
+            return res.status(400).json({ message: '管理員帳號已存在' });
+        }
+        const hashedPassword = await bcrypt.hash('testpassword', 10);
+        console.log('密碼加密完成:', hashedPassword);
+        const admin = new User({
+            username: 'testadmin',
+            password: hashedPassword,
+        });
+        await admin.save();
+        console.log('管理員帳號創建成功');
+        res.status(201).json({ message: '管理員帳號創建成功' });
+    } catch (error) {
+        console.error('錯誤:', error.message);
+        res.status(500).json({ message: '伺服器錯誤', error: error.message });
+    }
+});
+
 module.exports = router;
