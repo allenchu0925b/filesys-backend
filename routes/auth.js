@@ -90,7 +90,7 @@ router.post('/reset-admin', async (req, res) => {
             { upsert: true }
         );
         console.log('管理員密碼重設成功');
-        res.status(200).json({ message: '管理員密碼已重設為 newpassword123' });
+        res.status(200).json({ message: '管理員密碼已重設為 7376GS3834' });
     } catch (error) {
         console.error('錯誤:', error.message);
         res.status(500).json({ message: '重設失敗', error: error.message });
