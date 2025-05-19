@@ -100,5 +100,21 @@ router.post('/init-admin', async (req, res) => {
         res.status(500).json({ message: '伺服器錯誤', error: error.message });
     }
 });
-
+outer.post('/reset-admin', async (req, res) => {
+    console.log('收到 /reset-admin 請求');
+    try {
+        const hashedPassword = await bcrypt.hash('newpassword123', 10);
+        console.log('密碼加密完成:', hashedPassword);
+        await User.updateOne(
+            { username: 'testadmin' },
+            { password: hashedPassword },
+            { upsert: true }
+        );
+        console.log('管理員密碼重設成功');
+        res.status(200).json({ message: '管理員密碼已重設為 newpassword123' });
+    } catch (error) {
+        console.error('錯誤:', error.message);
+        res.status(500).json({ message: '重設失敗', error: error.message });
+    }
+});
 module.exports = router;
