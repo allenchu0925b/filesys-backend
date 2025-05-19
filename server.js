@@ -12,6 +12,7 @@ console.log('環境變數診斷:');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', process.env.PORT);
 console.log('MONGO_URI:', process.env.MONGO_URI ? '已設定' : '未設定');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? '已設定' : '未設定');
 
 dotenv.config();
 const app = express();
@@ -33,17 +34,15 @@ app.get('/health', (req, res) => {
     });
 });
 
-// CORS 中間件 - 使用更寬鬆的配置進行測試
+// CORS 中間件 - 設定為前端特定域名
 app.use((req, res, next) => {
-    // 允許所有來源，僅用於測試
-    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Origin', 'https://file-management-system-ouxu.onrender.com');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', '*');
-    
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
-    
     next();
 });
 
@@ -51,8 +50,6 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     console.log('Headers:', req.headers);
-    
-    // 捕獲回應
     const oldSend = res.send;
     res.send = function(data) {
         console.log(`[${new Date().toISOString()}] Response:`, {
@@ -62,7 +59,6 @@ app.use((req, res, next) => {
         });
         oldSend.apply(res, arguments);
     };
-    
     next();
 });
 
@@ -73,7 +69,10 @@ app.use(express.urlencoded({ extended: true }));
 // MongoDB 連接配置
 const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGO_URI);
+        const conn = await mongoose.connect(process.env.MONGO_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
         console.log('✅ MongoDB 連接成功!');
         console.log(`資料庫主機: ${conn.connection.host}`);
         console.log(`資料庫名稱: ${conn.connection.name}`);

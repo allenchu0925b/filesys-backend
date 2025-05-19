@@ -23,6 +23,7 @@ router.post('/register', async (req, res) => {
         await user.save();
         res.status(201).json({ message: '用戶註冊成功' });
     } catch (error) {
+        console.error('註冊錯誤:', error.message);
         res.status(500).json({ error: '伺服器錯誤', details: error.message });
     }
 });
@@ -30,17 +31,24 @@ router.post('/register', async (req, res) => {
 // 登入路由
 router.post('/login', async (req, res) => {
     try {
+        console.log('收到 /login 請求:', req.body);
         const { username, password } = req.body;
         if (!username || !password) {
             return res.status(400).json({ error: '請填寫所有欄位' });
         }
         const user = await User.findOne({ username });
+        console.log('查詢用戶:', user ? '找到' : '未找到');
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ error: '無效的用戶名或密碼' });
         }
+        if (!process.env.JWT_SECRET) {
+            throw new Error('JWT_SECRET 未設定');
+        }
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        console.log('生成 token:', token);
         res.json({ token });
     } catch (error) {
+        console.error('登入錯誤:', error.message);
         res.status(500).json({ error: '伺服器錯誤', details: error.message });
     }
 });
