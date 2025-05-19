@@ -36,8 +36,8 @@ router.get('/test', (req, res) => {
     res.json({ message: '檔案路由正常運作' });
 });
 
-// 獲取所有檔案
-router.get('/', authenticateToken, async (req, res) => {
+// 獲取所有檔案 - 公開訪問
+router.get('/', async (req, res) => {
     try {
         const files = await File.find().sort({ createdAt: -1 });
         res.json(files);
