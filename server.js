@@ -7,12 +7,22 @@ const dotenv = require('dotenv');
 process.env.LANG = 'zh_TW.UTF-8';
 Buffer.from('中文測試'); // 強制 Node.js 使用 UTF-8
 
+// 環境變數診斷
+console.log('環境變數診斷:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('MONGO_URI:', process.env.MONGO_URI ? '已設定' : '未設定');
+
 dotenv.config();
 const app = express();
 
 // 基本的健康檢查路由 - 必須在最前面
 app.get('/', (req, res) => {
-    res.json({ message: '服務器正在運行' });
+    res.json({ 
+        message: '服務器正在運行',
+        env: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+    });
 });
 
 app.get('/health', (req, res) => {
@@ -116,9 +126,12 @@ app.use((req, res) => {
 // 連接資料庫並啟動伺服器
 const PORT = process.env.PORT || 10000;
 connectDB().then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`✅ 伺服器運行在 port ${PORT}`);
-        console.log(`測試 API: http://localhost:${PORT}/test`);
-        console.log(`資料庫狀態: http://localhost:${PORT}/db-status`);
+        console.log(`服務器地址: ${process.env.RENDER_EXTERNAL_URL || `http://0.0.0.0:${PORT}`}`);
+        console.log('環境:', process.env.NODE_ENV || 'development');
     });
+}).catch(err => {
+    console.error('服務器啟動失敗:', err);
+    process.exit(1);
 });

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: filesys-backend
+    name: filesys-backend-1
     env: node
     buildCommand: npm install
     startCommand: node server.js
