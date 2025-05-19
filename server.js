@@ -10,26 +10,49 @@ Buffer.from('中文測試'); // 強制 Node.js 使用 UTF-8
 dotenv.config();
 const app = express();
 
-// CORS 配置
-const corsOptions = {
-    origin: function (origin, callback) {
-        const allowedOrigins = ['https://filesys-frontend.onrender.com', 'http://localhost:3000'];
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('不允許的來源'));
-        }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-    credentials: true,
-    maxAge: 86400, // 預檢請求的結果可以快取 24 小時
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-};
+// 在所有路由之前處理 CORS
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'https://filesys-frontend.onrender.com');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    // 處理 OPTIONS 請求
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
+    
+    next();
+});
 
-// 使用 CORS 中間件
-app.use(cors(corsOptions));
+// 錯誤處理中間件
+app.use((err, req, res, next) => {
+    console.error('錯誤:', err);
+    res.status(500).json({
+        message: '服務器錯誤',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+});
+
+// 請求日誌中間件
+app.use((req, res, next) => {
+    console.log(`\n=== 請求資訊 ===`);
+    console.log(`時間: ${new Date().toISOString()}`);
+    console.log(`方法: ${req.method}`);
+    console.log(`路徑: ${req.path}`);
+    console.log(`來源: ${req.headers.origin}`);
+    console.log(`請求標頭:`, req.headers);
+    
+    // 監聽回應完成事件
+    res.on('finish', () => {
+        console.log(`\n=== 回應資訊 ===`);
+        console.log(`狀態碼: ${res.statusCode}`);
+        console.log(`回應標頭:`, res.getHeaders());
+    });
+    
+    next();
+});
 
 // 中間件
 app.use(express.json());
