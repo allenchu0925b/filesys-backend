@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const urlValidator = {
     validator: function(v) {
+        if (!v) return true; // 允許空值
         try {
             new URL(v);
             return true;
@@ -21,19 +22,16 @@ const fileSchema = new mongoose.Schema({
     },
     videoLink: {
         type: String,
-        required: true,
         validate: urlValidator,
         maxLength: [2000, 'URL 不能超過 2000 字元']
     },
     mp3Link: {
         type: String,
-        required: true,
         validate: urlValidator,
         maxLength: [2000, 'URL 不能超過 2000 字元']
     },
     textLink: {
         type: String,
-        required: true,
         validate: urlValidator,
         maxLength: [2000, 'URL 不能超過 2000 字元']
     },
@@ -43,4 +41,4 @@ const fileSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('File', fileSchema); 
+module.exports = mongoose.model('File', fileSchema);
