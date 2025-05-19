@@ -10,7 +10,11 @@ Buffer.from('中文測試'); // 強制 Node.js 使用 UTF-8
 dotenv.config();
 const app = express();
 
-// 基本的健康檢查路由
+// 基本的健康檢查路由 - 必須在最前面
+app.get('/', (req, res) => {
+    res.json({ message: '服務器正在運行' });
+});
+
 app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
@@ -52,16 +56,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// 錯誤處理
-app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(500).json({
-        error: true,
-        message: err.message,
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
-});
-
 // 中間件
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -69,10 +63,7 @@ app.use(express.urlencoded({ extended: true }));
 // MongoDB 連接配置
 const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGO_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
+        const conn = await mongoose.connect(process.env.MONGO_URI);
         console.log('✅ MongoDB 連接成功!');
         console.log(`資料庫主機: ${conn.connection.host}`);
         console.log(`資料庫名稱: ${conn.connection.name}`);
@@ -107,8 +98,23 @@ app.get('/db-status', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/files', require('./routes/files'));
 
+// 錯誤處理 - 必須在所有路由之後
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(500).json({
+        error: true,
+        message: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+});
+
+// 處理 404
+app.use((req, res) => {
+    res.status(404).json({ message: '找不到請求的資源' });
+});
+
 // 連接資料庫並啟動伺服器
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 connectDB().then(() => {
     app.listen(PORT, () => {
         console.log(`✅ 伺服器運行在 port ${PORT}`);
