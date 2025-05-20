@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 
 // 確保使用 UTF-8 編碼
 process.env.LANG = 'zh_TW.UTF-8';
@@ -34,17 +35,13 @@ app.get('/health', (req, res) => {
     });
 });
 
-// CORS 中間件 - 設定為前端特定域名
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', 'https://file-management-system-ouxu.onrender.com');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    next();
-});
+// CORS 中間件
+app.use(cors({
+    origin: ['http://localhost:5000', 'https://file-management-system-ouxu.onrender.com'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
 
 // 請求日誌
 app.use((req, res, next) => {
@@ -65,6 +62,7 @@ app.use((req, res, next) => {
 // 中間件
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, '..', 'frontend'))); // 添加靜態檔案服務
 
 // MongoDB 連接配置
 const connectDB = async () => {
