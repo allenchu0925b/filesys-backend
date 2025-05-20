@@ -69,10 +69,7 @@ app.use(express.urlencoded({ extended: true }));
 // MongoDB 連接配置
 const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGO_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
+        const conn = await mongoose.connect(process.env.MONGO_URI); // 移除過時選項
         console.log('✅ MongoDB 連接成功!');
         console.log(`資料庫主機: ${conn.connection.host}`);
         console.log(`資料庫名稱: ${conn.connection.name}`);
