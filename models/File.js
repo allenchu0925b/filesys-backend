@@ -1,43 +1,30 @@
 const mongoose = require('mongoose');
 
-const urlValidator = {
-    validator: function(v) {
-        if (!v) return true; // 允許空值
-        try {
-            new URL(v);
-            return true;
-        } catch (e) {
-            return false;
-        }
-    },
-    message: '請輸入有效的 URL'
-};
-
 const fileSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        trim: true,
-        maxLength: [100, '名稱不能超過 100 字元']
+        trim: true
     },
     videoLink: {
         type: String,
-        validate: urlValidator,
-        maxLength: [2000, 'URL 不能超過 2000 字元']
+        trim: true
     },
     mp3Link: {
         type: String,
-        validate: urlValidator,
-        maxLength: [2000, 'URL 不能超過 2000 字元']
+        trim: true
     },
     textLink: {
         type: String,
-        validate: urlValidator,
-        maxLength: [2000, 'URL 不能超過 2000 字元']
+        trim: true
     },
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    order: {  // 新增 order 欄位
+        type: Number,
+        default: 0
     }
 });
 

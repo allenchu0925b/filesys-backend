@@ -36,10 +36,10 @@ router.get('/test', (req, res) => {
     res.json({ message: '檔案路由正常運作' });
 });
 
-// 獲取所有檔案 - 公開訪問
+// 獲取所有檔案 - 公開訪問，按 order 和 createdAt 排序
 router.get('/', async (req, res) => {
     try {
-        const files = await File.find().sort({ createdAt: -1 });
+        const files = await File.find().sort({ order: 1, createdAt: -1 });
         res.json(files);
     } catch (error) {
         const { status, message } = handleError(error);
@@ -51,7 +51,10 @@ router.get('/', async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
     try {
         const { name, videoLink, mp3Link, textLink } = req.body;
-        const file = new File({ name, videoLink, mp3Link, textLink });
+        // 獲取當前最大的 order 值
+        const maxOrderFile = await File.findOne().sort({ order: -1 });
+        const newOrder = maxOrderFile ? maxOrderFile.order + 1 : 0;
+        const file = new File({ name, videoLink, mp3Link, textLink, order: newOrder });
         await file.save();
         res.status(201).json(file);
     } catch (error) {
@@ -83,6 +86,41 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         const file = await File.findByIdAndDelete(req.params.id);
         if (!file) return res.status(404).json({ error: '找不到檔案' });
         res.json({ message: '檔案已成功刪除' });
+    } catch (error) {
+        const { status, message } = handleError(error);
+        res.status(status).json({ error: message });
+    }
+});
+
+// 調整順序
+router.post('/reorder', authenticateToken, async (req, res) => {
+    try {
+        const { id, direction } = req.body; // direction: 'up' 或 'down'
+        const file = await File.findById(id);
+        if (!file) return res.status(404).json({ error: '找不到檔案' });
+
+        const files = await File.find().sort({ order: 1, createdAt: -1 });
+        const index = files.findIndex(f => f._id.toString() === id);
+
+        if (direction === 'up' && index > 0) {
+            // 向上移動，與前一項交換 order
+            const prevFile = files[index - 1];
+            const tempOrder = file.order;
+            file.order = prevFile.order;
+            prevFile.order = tempOrder;
+            await file.save();
+            await prevFile.save();
+        } else if (direction === 'down' && index < files.length - 1) {
+            // 向下移動，與後一項交換 order
+            const nextFile = files[index + 1];
+            const tempOrder = file.order;
+            file.order = nextFile.order;
+            nextFile.order = tempOrder;
+            await file.save();
+            await nextFile.save();
+        }
+
+        res.json({ message: '順序調整成功' });
     } catch (error) {
         const { status, message } = handleError(error);
         res.status(status).json({ error: message });
