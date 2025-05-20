@@ -1,99 +1,53 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-// 註冊路由
-router.post('/register', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        if (!username || !password) {
-            return res.status(400).json({ error: '請填寫所有欄位' });
-        }
-        const existingUser = await User.findOne({ username });
-        if (existingUser) {
-            return res.status(400).json({ error: '用戶名已存在' });
-        }
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({
-            username,
-            password: hashedPassword,
-        });
-        await user.save();
-        res.status(201).json({ message: '用戶註冊成功' });
-    } catch (error) {
-        console.error('註冊錯誤:', error.message);
-        res.status(500).json({ error: '伺服器錯誤', details: error.message });
+// 錯誤處理輔助函數
+const handleError = (error) => {
+    if (error.name === 'ValidationError') {
+        const errors = Object.values(error.errors).map(err => err.message);
+        return { status: 400, message: errors.join(', ') };
     }
+    if (error.name === 'CastError') {
+        return { status: 400, message: '無效的 ID 格式' };
+    }
+    return { status: 500, message: '伺服器錯誤' };
+};
+
+// 測試路由
+router.get('/test', (req, res) => {
+    res.json({ message: '認證路由正常運作' });
 });
 
 // 登入路由
 router.post('/login', async (req, res) => {
     try {
-        console.log('收到 /login 請求:', req.body);
         const { username, password } = req.body;
         if (!username || !password) {
-            return res.status(400).json({ error: '請填寫所有欄位' });
+            return res.status(400).json({ error: '請提供帳號和密碼' });
         }
+
         const user = await User.findOne({ username });
-        console.log('查詢用戶:', user ? '找到' : '未找到');
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({ error: '無效的用戶名或密碼' });
+        if (!user) {
+            return res.status(401).json({ error: '帳號或密碼錯誤' });
         }
-        if (!process.env.JWT_SECRET) {
-            throw new Error('JWT_SECRET 未設定');
+
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ error: '帳號或密碼錯誤' });
         }
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        console.log('生成 token:', token);
+
+        const token = jwt.sign(
+            { userId: user._id, username: user.username },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
         res.json({ token });
     } catch (error) {
-        console.error('登入錯誤:', error.message);
-        res.status(500).json({ error: '伺服器錯誤', details: error.message });
-    }
-});
-
-// 初始化管理員路由
-router.post('/init-admin', async (req, res) => {
-    console.log('收到 /init-admin 請求');
-    try {
-        const adminExists = await User.findOne({ username: 'testadmin' });
-        console.log('檢查管理員是否存在:', adminExists);
-        if (adminExists) {
-            console.log('管理員已存在，返回 400');
-            return res.status(400).json({ message: '管理員帳號已存在' });
-        }
-        const hashedPassword = await bcrypt.hash('testpassword', 10);
-        console.log('密碼加密完成:', hashedPassword);
-        const admin = new User({
-            username: 'testadmin',
-            password: hashedPassword,
-        });
-        await admin.save();
-        console.log('管理員帳號創建成功');
-        res.status(201).json({ message: '管理員帳號創建成功' });
-    } catch (error) {
-        console.error('錯誤:', error.message);
-        res.status(500).json({ message: '伺服器錯誤', error: error.message });
-    }
-});
-
-// 臨時重設管理員密碼路由
-router.post('/reset-admin', async (req, res) => {
-    console.log('收到 /reset-admin 請求');
-    try {
-        const hashedPassword = await bcrypt.hash('newpassword123', 10);
-        console.log('密碼加密完成:', hashedPassword);
-        await User.updateOne(
-            { username: 'testadmin' },
-            { password: hashedPassword },
-            { upsert: true }
-        );
-        console.log('管理員密碼重設成功');
-        res.status(200).json({ message: '管理員密碼已重設為 7376GS3834' });
-    } catch (error) {
-        console.error('錯誤:', error.message);
-        res.status(500).json({ message: '重設失敗', error: error.message });
+        const { status, message } = handleError(error);
+        res.status(status).json({ error: message });
     }
 });
 
